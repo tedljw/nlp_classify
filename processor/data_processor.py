@@ -1,5 +1,6 @@
 import codecs
 import json
+from .classify_processor import ClassifyProcessor
 
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
@@ -41,3 +42,14 @@ class DataProcessor(object):
         for line in file_in:
             lines.append(line.split(","))
         return lines
+
+
+def get_class(task_name):
+    """ Mapping from task string to Dataset Class """
+    processors = {"classify": ClassifyProcessor}
+    if task_name not in processors:
+        raise ValueError("Task not found: %s" % (task_name))
+
+    return processors[task_name]
+
+

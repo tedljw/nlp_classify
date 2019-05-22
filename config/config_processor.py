@@ -1,8 +1,8 @@
-
+import os
 from typing import NamedTuple
 import json
 
-class task_config(NamedTuple):
+class TaskConfig(NamedTuple):
     """ Config for classification """
     task: str = "agnews"
     mode: str = "train"
@@ -12,10 +12,12 @@ class task_config(NamedTuple):
     cfg_optim: str = "config/finetune/agnews/optim.json"
     model_file: str = ""
     pretrain_file: str = "../uncased_L-12_H-768_A-12/bert_model.ckpt"
-    save_dir: str = "../exp/bert/finetune/agnews"
+    output_dir: str = "../exp/bert/finetune/agnews"
     comments: str = [] # for comments in json file
+    do_train: bool = True
+    do_eval: bool = True
 
-class data_config(NamedTuple):
+class DataConfig(NamedTuple):
     """ Config for classification dataset """
     vocab_file: str = "../uncased_L-12_H-768_A-12/vocab.txt"
     data_file: dict = {"train": "../agnews/train.csv",
@@ -23,7 +25,7 @@ class data_config(NamedTuple):
     max_len: int = 128
     comments: list = [] # for comments in json file
 
-class model_config(NamedTuple):
+class ModelConfig(NamedTuple):
     """ Configuration for BERT model """
     vocab_size: int = None # Size of Vocabulary
     dim: int = 768 # Dimension of Hidden Layer in Transformer Encoder
@@ -38,10 +40,10 @@ class model_config(NamedTuple):
     comments: list = [] # for comments in json file
 
 
-class optim_config(NamedTuple):
+class OptimConfig(NamedTuple):
     """ Hyperparameters for optimization """
     seed: int = 3431 # random seed
-    batch_size: int = 32
+    train_batch_size: int = 32
     lr: int = 5e-5 # learning rate
     n_epochs: int = 10 # the number of epoch
     # `warm up` period = warmup(0.1)*total_steps
@@ -51,12 +53,23 @@ class optim_config(NamedTuple):
     total_steps: int = 100000 # total number of steps to train
     data_parallel: bool = False
     comments: str = "" # for comments in json file
-
+    gradient_accumulation_steps:int = 1 # Number of updates steps to accumulate before performing a backward/update pass.
 
 def read_config(config='config/finetune/agnews/train.json'):
-    cfg = task_config(**json.load(open(config, "r")))
-    cfg_data = data_config(**json.load(open(cfg.cfg_data, "r")))
-    cfg_model = model_config(**json.load(open(cfg.cfg_model, "r")))
-    cfg_optim = optim_config(**json.load(open(cfg.cfg_optim, "r")))
+    cfg = TaskConfig(**json.load(open(config, "r")))
+    cfg_data = DataConfig(**json.load(open(cfg.cfg_data, "r")))
+    cfg_model = ModelConfig(**json.load(open(cfg.cfg_model, "r")))
+    cfg_optim = OptimConfig(**json.load(open(cfg.cfg_optim, "r")))
+
+    if cfg_optim.gradient_accumulation_steps < 1:
+        raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
+            cfg_optim.gradient_accumulation_steps))
+
+    if not cfg.do_train and not cfg.do_eval:
+        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
+
+    if os.path.exists(cfg.output_dir) and os.listdir(cfg.output_dir):
+        raise ValueError("Output directory ({}) already exists and is not empty.".format(cfg.output_dir))
+    os.makedirs(cfg.output_dir, exist_ok=True)
 
     return cfg, cfg_data, cfg_model, cfg_optim

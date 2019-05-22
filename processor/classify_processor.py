@@ -2,7 +2,7 @@ import os
 from processor.data_processor import DataProcessor
 from utils.classify_utils import InputExample
 
-class ClassificationProcessor(DataProcessor):
+class ClassifyProcessor(DataProcessor):
 	"""Processor for the MRPC data set (GLUE version)."""
 
 	def __init__(self):

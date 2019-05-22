@@ -1,5 +1,8 @@
 from main import logger
 
+import torch
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler
+
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
@@ -156,3 +159,20 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
             tokens_a.pop()
         else:
             tokens_b.pop()
+
+
+def convert_features_to_tensors(features, batch_size):
+    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+    all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
+    all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+
+    if features[0].label_id is not None :
+        all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
+
+    data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+
+    sampler = RandomSampler(data)
+    dataloader = DataLoader(data, sampler=sampler, batch_size=batch_size)
+
+    return dataloader
+
